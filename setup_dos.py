@@ -11,31 +11,31 @@ subprocess.run("qemu-img create -f qcow dos.disk 128M".split())
 with pexpect.spawn("qemu-system-i386 -hda dos.disk -m 16 -k en-us -rtc base=localtime -fda Dos6.22.img -boot a -nographic", logfile=sys.stdout, encoding='utf-8') as qemu:
 	qemu.expect_exact('A:\>') # 开机
 	# 建立 C 盘
-	qemu.send('fdisk\r\n')
+	qemu.send('fdisk\r')
 	qemu.expect_exact('Enter choice')
-	qemu.send('\r\n')
-	qemu.send('\r\n')
-	qemu.send('\r\n')
-	qemu.send('\r\n')
-	qemu.send('\r\n')
+	qemu.send('\r')
+	qemu.send('\r')
+	qemu.send('\r')
+	qemu.send('\r')
+	qemu.send('\r')
 	qemu.expect_exact('A:\>')
 	# 格式化 C 盘
-	qemu.send('FORMAT C: /S\r\n')
+	qemu.send('FORMAT C: /S\r')
 	qemu.expect(pexpect.TIMEOUT, timeout=1)
 	# print(qemu.before.decode())
-	qemu.send('y\r\n')
+	qemu.send('y\r')
 	qemu.expect(pexpect.TIMEOUT, timeout=1)
 	# print(qemu.before.decode())
 
-	qemu.send('\r\n')
+	qemu.send('\r')
 	qemu.expect(pexpect.TIMEOUT, timeout=1)
 	# print(qemu.before.decode())
 
 	qemu.expect_exact('A:\>')
 	# 确认
-	qemu.send("c:\r\n")
+	qemu.send("c:\r")
 	qemu.expect_exact('C:\>')
-	qemu.send('dir\r\n')
+	qemu.send('dir\r')
 	qemu.expect_exact('Volume Serial Number')
 	qemu.close()
 
@@ -63,10 +63,10 @@ with pexpect.spawn("qemu-system-i386 -hda dos.disk -m 16 -k en-us -rtc base=loca
 		# 	qemu.send(com+' ')
 		for alphabet in command:
 			qemu.send(alphabet)
-		qemu.send('\r\n')
+		qemu.send('\r')
 		qemu.expect_exact('C:\>')
 
-	qemu.send('\r\n')
+	qemu.send('\r')
 
 	qemu.close()
 
@@ -75,10 +75,10 @@ with pexpect.spawn("qemu-system-i386 -hda dos.disk -m 16 -k en-us -rtc base=loca
 	try:
 		qemu.expect_exact('C:\>', timeout=10)
 		# print('can\'t launch with C:\\, please try again', file=sys.stderr)
-		qemu.send('dir MSDOS\r\n')
+		qemu.send('dir MSDOS\r')
 		qemu.expect_exact('42 file(s)', timeout=1)
 		# print('MSDOS files not found', file=sys.stderr)
-		qemu.send('d:\r\n')
+		qemu.send('d:\r')
 		qemu.expect_exact('D:\>', timeout=1)
 		# 	print('can\'t launch with D:\\', file=sys.stderr)
 		qemu.close()
