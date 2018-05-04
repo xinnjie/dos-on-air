@@ -8,6 +8,93 @@ import select
 cwd = os.getcwd()
 
 
+# enter dos, type: qemu-system-i386 -hda dos.disk -m 16 -k en-us -rtc base=localtime -drive file=fat:rw:dosfiles -boot order=c -nographic
+
+class DosOnAirDebug:
+	#  same as DosOnAir
+	def __init__(self, dos_files:str, dos_disk:str, log_file=None) -> None:
+		super().__init__()
+		self.dos_files = dos_files
+		self.dos_disk = dos_disk
+		self.log_file = log_file
+		command = "qemu-system-i386 -hda {} -m 16 -k en-us -rtc base=localtime -drive file=fat:rw:{} -boot order=c -nographic".format(self.dos_disk, self.dos_files)
+		self.dos = pexpect.spawn(command, logfile=self.log_file, encoding='utf-8', timeout=10)
+		self.init_dos()
+
+		self.debug_state = False
+
+	def init_dos(self):
+		self.dos.expect_exact('C:\>', timeout=10)
+		self.send('d:\r')
+		self.dos.expect_exact('D:\>', timeout=1)
+
+	def debug(self, exe_file):
+		exe_file = os.path.split(exe_file)[1]
+		if not os.path.exists(os.path.join(self.dos_files, exe_file)):
+			raise FileNotFoundError(exe_file + ' not found in ', self.dos_files)
+		self.send(r'bin\debug.com {}\r'.format(exe_file))
+		self.dos.expect_exact('-', timeout=1)  # -: debug prompt
+		self.debug_state = True
+
+	def step(self, n=None):
+		assert self.debug_state
+		if not n:
+			n = ''
+		else:
+			assert n > 0
+		self.send('t {} \r'.format(n))
+		# todo 假如 step 过程中汇编程序有要求输入并阻塞，会造成死锁（expect 过程中不读取键盘输入数据）
+		self.dos.expect_exact('-')
+		return self.dos.before
+
+	def register(self):
+		assert self.debug_state
+		self.send('r \r')
+		self.dos.expect_exact('-')
+		return self.dos.before
+
+	# todo 可支持更改特定寄存器
+
+	def display_data(self, from_=None, to=None):
+		"""
+		display data in memery
+		:param from_: hex
+		:param to: hex
+		:return:
+		"""
+		if not from_:
+			from_ = ''
+		if not to:
+			to = ''
+		self.send('d {} {}'.format(from_, to))
+		self.dos.expect_exact('-')
+		return self.dos.before
+
+	def display_asm(self, from_=None, to=None):
+		"""
+		display data in memery
+		:param from_:
+		:param to:
+		:return:
+		"""
+		if not from_:
+			from_ = ''
+		if not to:
+			to = ''
+		self.send('u {} {}'.format(from_, to))
+		self.dos.expect_exact('-')
+		return self.dos.before
+
+
+	# same as DosOnAir
+	def close(self):
+		self.dos.close()
+
+	# same as DosOnAir
+	def send(self, cmd):
+		for alphabet in cmd:
+			self.dos.send(alphabet)
+
 class DosOnAir:
 	def __init__(self, dos_files:str, dos_disk:str, log_file=None) -> None:
 		super().__init__()
