@@ -5,6 +5,8 @@ import errno
 import pexpect
 import select
 
+from format_decorators import FormatDecorators
+
 cwd = os.getcwd()
 
 
@@ -29,13 +31,15 @@ class DosOnAirDebug:
 		self.dos.expect_exact('D:\>', timeout=1)
 
 	def debug(self, exe_file):
+		assert not self.debug_state
 		exe_file = os.path.split(exe_file)[1]
 		if not os.path.exists(os.path.join(self.dos_files, exe_file)):
 			raise FileNotFoundError(exe_file + ' not found in ', self.dos_files)
-		self.send(r'bin\debug.com {}\r'.format(exe_file))
+		self.send('bin\debug.com {}\r'.format(exe_file))
 		self.dos.expect_exact('-', timeout=1)  # -: debug prompt
 		self.debug_state = True
 
+	@FormatDecorators.trace_formatter
 	def step(self, n=None):
 		assert self.debug_state
 		if not n:
@@ -48,12 +52,20 @@ class DosOnAirDebug:
 		return self.dos.before
 
 	def register(self):
+		"""
+		show current registers state
+		:return:
+		"""
 		assert self.debug_state
-		self.send('r \r')
-		self.dos.expect_exact('-')
-		return self.dos.before
 
-	# todo 可支持更改特定寄存器
+		@FormatDecorators.trace_formatter
+		def get_register_state():
+			self.send('r \r')
+			self.dos.expect_exact('-')
+			return self.dos.before
+		return get_register_state()[0]
+
+	# todo 可支持修改特定寄存器,
 
 	def display_data(self, from_=None, to=None):
 		"""
@@ -246,7 +258,11 @@ if __name__ == '__main__':
 	dos_files = os.path.join(cwd, 'dosfiles')
 	dos_disk = os.path.join(cwd, 'dos.disk')
 	with open(os.path.join(cwd, 'dos.log'), 'w') as log_file:
-		dos = DosOnAir(dos_files, dos_disk, log_file)
-		print(dos.masm('sample.asm'))
-		print(dos.link('sample.obj'))
-		dos.interact('sample.exe')
+		# dos = DosOnAir(dos_files, dos_disk, log_file)
+		# print(dos.masm('sample.asm'))
+		# print(dos.link('sample.obj'))
+		# dos.interact('sample.exe')
+		dos = DosOnAirDebug(dos_files, dos_disk, log_file)
+		dos.debug('sample.exe')
+		print(dos.step(2))
+		print(dos.register())
